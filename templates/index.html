@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Foot Pressure Distribution</title>
+
+    <!-- Import Inter Font & Socket.IO -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.js"></script>
+
+    <style>
+        /* Apply Inter font globally */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        /* Title Styling */
+        h1 {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        /* Global warning message */
+        .warning-message {
+            color: red;
+            font-size: 22px;
+            font-weight: bold;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        /* High Pressure Text Box */
+        .high-pressure-text {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.8);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 5px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        /* Foot image container */
+        .foot-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* The foot image */
+        .foot-img {
+            width: 1500px;
+            height: auto;
+        }
+
+        /* Common overlay style */
+        .overlay {
+            position: absolute;
+            background-color: red;
+            opacity: 0.5;
+            display: none;
+            border-radius: 50%;
+        }
+
+        /* Toe Overlays */
+        .toe1-overlay { top: 90px; left: 120px; width: 140px; height: 140px; }
+        .toe2-overlay { top: 300px; left: 180px; width: 100px; height: 100px; }
+        .toe3-overlay { top: 420px; left: 270px; width: 100px; height: 100px; }
+        .toe4-overlay { top: 480px; left: 350px; width: 85px; height: 85px; }
+        .toe5-overlay { top: 550px; left: 450px; width: 85px; height: 85px; }
+
+        /* Ensure "Toes" Text Appears Above Toe1 */
+        .toe-text {
+            top: 70px;  /* Position above toe1 */
+            left: 140px;
+        }
+
+        /* Heel & Rectangular Overlays */
+        .heel-box { top: 50px; left: 1200px; width: 300px; height: 600px; }
+        .region1-box { top: 50px; left: 380px; width: 300px; height: 450px; }
+        .region2-box { top: 50px; left: 500px; width: 300px; height: 600px; }
+
+        /* Text labels */
+        .heel-text { top: 30px; left: 1250px; }
+        .region1-text { top: 30px; left: 450px; }
+        .region2-text { top: 30px; left: 550px; }
+    </style>
+</head>
+<body>
+
+<h1>Foot Pressure Distribution</h1>
+
+<!-- Global warning message -->
+<p id="warningMessage" class="warning-message">Careful! Static Position has been held for too long.</p>
+
+<!-- Foot Image & Overlays -->
+<div class="foot-container">
+    <img class="foot-img" src="{{ url_for('static', filename='foot2.png') }}" alt="Foot Image">
+
+    <!-- Highlightable Overlays -->
+    <div class="overlay heel-box" id="heel"></div>
+    <div class="overlay toe1-overlay" id="toe1"></div>
+    <div class="overlay toe2-overlay" id="toe2"></div>
+    <div class="overlay toe3-overlay" id="toe3"></div>
+    <div class="overlay toe4-overlay" id="toe4"></div>
+    <div class="overlay toe5-overlay" id="toe5"></div>
+    <div class="overlay region1-box" id="region1"></div>
+    <div class="overlay region2-box" id="region2"></div>
+
+    <!-- High Pressure Labels -->
+    <div class="high-pressure-text heel-text" id="heel-text">High Pressure Zone Identified</div>
+    <div class="high-pressure-text toe-text" id="toe-text">High Pressure Zone Identified</div>
+    <div class="high-pressure-text region1-text" id="region1-text">High Pressure Zone Identified</div>
+    <div class="high-pressure-text region2-text" id="region2-text">High Pressure Zone Identified</div>
+</div>
+
+<!-- JavaScript with Socket.IO -->
+<script>
+    var socket = io();
+
+    // Function to highlight a region
+    function highlightRegion(region) {
+        // Hide all overlays and text first
+        document.querySelectorAll('.overlay, .high-pressure-text').forEach(el => el.style.display = 'none');
+
+        // If "toes" is received, highlight ALL toe overlays together
+        if (region === "toes") {
+            ["toe1", "toe2", "toe3", "toe4", "toe5"].forEach(toe => {
+                document.getElementById(toe).style.display = 'block';
+            });
+            document.getElementById("toe-text").style.display = 'block'; // Show text for toes above toe1
+        }
+        // Highlight single region (heel, region1, region2, etc.)
+        else if (region) {
+            document.getElementById(region).style.display = 'block';
+            if (document.getElementById(region + "-text")) {
+                document.getElementById(region + "-text").style.display = 'block';
+            }
+        }
+    }
+
+    // Receive updates from the server
+    socket.on('update_highlight', function(data) {
+        highlightRegion(data.region);
+    });
+
+    // Auto-Cycle through different regions (Demo Mode)
+    let regions = ['toes', 'heel', 'region1', 'region2'];
+    let currentIndex = 0;
+
+    function cycleRegions() {
+        socket.emit('highlight_region', { region: regions[currentIndex] });
+        currentIndex = (currentIndex + 1) % regions.length;
+    }
+
+    // Cycle every 3 seconds
+    setInterval(cycleRegions, 3000);
+</script>
+
+</body>
+</html>
